@@ -2,7 +2,7 @@
 
 **Never Manually Type Data Again.** Turn any image with data into an editable spreadsheet instantly using AI.
 
-[![Version](https://img.shields.io/badge/version-0.2-blue.svg)](https://github.com/hunkim/img2excel)
+[![Version](https://img.shields.io/badge/version-0.3-blue.svg)](https://github.com/hunkim/img2excel)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Powered by Upstage](https://img.shields.io/badge/powered%20by-Upstage%20AI-orange.svg)](https://www.upstage.ai/)
 
@@ -203,7 +203,7 @@ Content-Type: application/json
 - **Authentication**: Firebase Auth
 - **Database**: Firestore
 - **Storage**: Firebase Storage
-- **AI Service**: Upstage AI Universal Information Extraction
+- **AI Service**: Upstage AI Agentic Information Extraction
 - **Deployment**: Vercel
 
 ## 📁 Project Structure
@@ -234,6 +234,24 @@ Content-Type: application/json
 │   └── useAuth.ts             # Authentication hook
 └── public/                    # Static assets
 ```
+
+## 🔄 v0.3 Improvements
+
+### 📱 Mobile-First Responsive Design
+- ✅ **Complete Mobile Optimization**: Fully responsive design while preserving desktop experience
+- ✅ **Touch-Friendly Interface**: Proper touch targets and mobile interactions throughout
+- ✅ **Smart Sidebar Behavior**: Closed by default on mobile, auto-opens on desktop with projects
+- ✅ **Adaptive Layouts**: Responsive sizing for all components (thumbnails, tables, forms)
+- ✅ **Enhanced Typography**: Custom breakpoints with scaled text for optimal mobile readability
+- ✅ **Performance Optimizations**: Touch manipulation CSS and efficient mobile rendering
+
+### 🎯 Mobile UX Improvements
+- ✅ **Overlay Interactions**: Tap outside to close sidebars on mobile
+- ✅ **Condensed UI**: Hidden non-essential elements on small screens
+- ✅ **Better Spacing**: Optimized padding and margins for touch interfaces
+- ✅ **Responsive Icons**: Appropriately scaled icon sizes across breakpoints
+- ✅ **Mobile-First Table**: Horizontal scrolling with touch-friendly cells
+- ✅ **Progressive Enhancement**: Graceful scaling from mobile (320px) to desktop
 
 ## 🔄 v0.2 Improvements
 
@@ -288,7 +306,7 @@ MIT License - feel free to use for personal or commercial projects.
 
 ## 🙏 Acknowledgments
 
-- **[Upstage AI](https://www.upstage.ai/)** - For providing the powerful Universal Information Extraction API
+- **[Upstage AI](https://www.upstage.ai/)** - For providing the powerful Agentic Information Extraction API
 - **[Vercel](https://vercel.com/)** - For seamless deployment and hosting
 - **[Firebase](https://firebase.google.com/)** - For authentication and data storage
 - **[shadcn/ui](https://ui.shadcn.com/)** - For beautiful, accessible UI components

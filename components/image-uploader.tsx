@@ -91,9 +91,9 @@ export function ImageUploader({ onImageUpload, buttonText = "Upload Image", comp
   return (
     <div
       {...getRootProps()}
-      className={`w-full p-8 border-2 border-dashed rounded-lg text-center cursor-pointer
+      className={`w-full p-6 sm:p-8 border-2 border-dashed rounded-lg text-center cursor-pointer
                   ${isDragActive ? "border-primary bg-primary/10" : "border-muted-foreground/30 hover:border-primary/70"}
-                  transition-colors duration-200 ease-in-out flex flex-col items-center justify-center min-h-[200px]`}
+                  transition-colors duration-200 ease-in-out flex flex-col items-center justify-center min-h-[160px] sm:min-h-[200px]`}
     >
       <input {...getInputProps()} />
       {preview && fileName ? (
@@ -103,9 +103,9 @@ export function ImageUploader({ onImageUpload, buttonText = "Upload Image", comp
             alt={`Preview of ${fileName}`}
             width={100}
             height={100}
-            className="max-h-32 w-auto object-contain rounded"
+            className="max-h-24 sm:max-h-32 w-auto object-contain rounded"
           />
-          <p className="text-sm text-muted-foreground">{fileName}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-full">{fileName}</p>
           <Button
             onClick={(e) => {
               e.stopPropagation()
@@ -120,12 +120,12 @@ export function ImageUploader({ onImageUpload, buttonText = "Upload Image", comp
         </div>
       ) : (
         <>
-          <UploadCloud className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <Button variant="default" size="lg" className="mb-2 pointer-events-none">
+          <UploadCloud className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
+          <Button variant="default" size="lg" className="mb-2 pointer-events-none text-sm sm:text-base">
             {buttonText}
           </Button>
-          <p className="text-sm text-muted-foreground">or drop a file, paste image</p>
-          <p className="text-xs text-muted-foreground mt-1">(Supports JPG, PNG, GIF, WEBP)</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">or drop a file, paste image</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">(Supports JPG, PNG, GIF, WEBP)</p>
         </>
       )}
     </div>

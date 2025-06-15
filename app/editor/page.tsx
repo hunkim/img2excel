@@ -54,7 +54,7 @@ interface Project {
 export default function EditorPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
@@ -107,6 +107,11 @@ export default function EditorPage() {
         // Set active project to the most recent one if none selected
         if (!activeProjectId && projects.length > 0) {
           setActiveProjectId(projects[0].id)
+        }
+        
+        // Auto-open sidebar on desktop if user has projects
+        if (projects.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 1024) {
+          setSidebarOpen(true)
         }
       })
       
@@ -370,11 +375,22 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+      {/* Mobile Overlay */}
+      {isAuthenticated && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Panel */}
       {isAuthenticated && sidebarOpen && (
         <div 
-          className="bg-white dark:bg-slate-900 border-r dark:border-slate-700 flex flex-col relative"
-          style={{ width: `${sidebarWidth}px` }}
+          className={cn(
+            "bg-white dark:bg-slate-900 border-r dark:border-slate-700 flex flex-col relative z-50",
+            "fixed lg:relative inset-y-0 left-0 w-80 lg:w-auto"
+          )}
+          style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${sidebarWidth}px` : '320px' }}
         >
           {/* Header */}
           <div className="p-3 border-b dark:border-slate-700 flex items-center justify-between">
@@ -532,41 +548,41 @@ export default function EditorPage() {
             {/* Main Content */}
       <div className="flex flex-col flex-1 h-full overflow-hidden">
         {/* Fixed Header */}
-        <header className="flex-shrink-0 p-3 border-b dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex items-center justify-between z-10">
-          <div className="flex items-center gap-2">
+        <header className="flex-shrink-0 p-2 sm:p-3 border-b dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex items-center justify-between z-10">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
             <button 
               onClick={() => {
                 // Clear current spreadsheet state when going home (fresh start)
                 actions.resetSheet()
                 router.push('/')
               }}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+              className="flex items-center gap-1 sm:gap-2 hover:opacity-80 transition-opacity cursor-pointer flex-shrink-0"
               title="Go to Home - Start Fresh"
             >
-              <BarChartBig className="h-7 w-7 text-primary" />
-              <span className="text-lg font-bold text-slate-800 dark:text-slate-200">img2excel</span>
+              <BarChartBig className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
+              <span className="text-sm sm:text-lg font-bold text-slate-800 dark:text-slate-200 hidden xs:inline">img2excel</span>
             </button>
             <a
               href="https://github.com/hunkim/img2excel/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1 p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="ml-0.5 sm:ml-1 p-1 sm:p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
               title="Report an issue"
             >
-              <Bug className="h-4 w-4 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
+              <Bug className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
             </a>
-            <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-2" />
+            <div className="w-px h-4 sm:h-6 bg-slate-300 dark:bg-slate-600 mx-1 sm:mx-2 hidden xs:block" />
             <Input
               type="text"
               value={sheetTitle}
               onChange={(e) => actions.setSheetTitle(e.target.value)}
               placeholder="Spreadsheet Title"
-              className="text-lg font-semibold border-0 focus-visible:ring-1 focus-visible:ring-primary w-auto max-w-xs md:max-w-md"
+              className="text-sm sm:text-lg font-semibold border-0 focus-visible:ring-1 focus-visible:ring-primary w-full min-w-0 max-w-[120px] xs:max-w-xs sm:max-w-md"
             />
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             {isAuthenticated && (
-              <div className="text-xs text-muted-foreground px-2">
+              <div className="text-xs text-muted-foreground px-1 sm:px-2 hidden sm:block">
                 {isSaving ? (
                   <span className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
@@ -575,14 +591,14 @@ export default function EditorPage() {
                 ) : lastSaved ? (
                   <span className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    Saved {new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <span className="hidden md:inline">Saved </span>{new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 ) : null}
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={downloadAsCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Download CSV
+            <Button variant="outline" size="sm" onClick={downloadAsCSV} className="text-xs sm:text-sm">
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Download CSV</span>
             </Button>
             <AuthButton />
           </div>
@@ -591,13 +607,13 @@ export default function EditorPage() {
         {/* Fixed Image Thumbnail Bar */}
         <div className="flex-shrink-0 p-2 border-b dark:border-slate-700 bg-white dark:bg-slate-800">
           <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex items-center space-x-3 pb-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 pb-2 sm:pb-3">
               {/* Upload Button - Always First */}
-              <div className="relative h-24 w-24 flex flex-col items-center justify-center shrink-0 border-2 border-dashed border-primary/30 hover:border-primary/60 rounded-lg bg-primary/5 hover:bg-primary/10 transition-all duration-200 group">
+              <div className="relative h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 flex flex-col items-center justify-center shrink-0 border-2 border-dashed border-primary/30 hover:border-primary/60 rounded-lg bg-primary/5 hover:bg-primary/10 transition-all duration-200 group">
                 {isProcessing ? (
-                  <div className="flex flex-col items-center gap-1">
-                    <Spinner size="md" className="text-primary" />
-                    <div className="text-xs text-muted-foreground text-center">
+                  <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                    <Spinner size="sm" className="text-primary sm:w-5 sm:h-5" />
+                    <div className="text-[10px] sm:text-xs text-muted-foreground text-center leading-tight">
                       {processingStep === 'generating-schema' ? 'Schema...' : 
                        processingStep === 'naming-schema' ? 'Naming...' :
                        processingStep === 'extracting-values' ? 'Values...' : 
@@ -605,9 +621,9 @@ export default function EditorPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-1">
-                    <PlusCircle className="h-6 w-6 text-primary group-hover:text-primary/80 transition-colors" />
-                    <span className="text-xs font-medium text-primary group-hover:text-primary/80 transition-colors">Add Image</span>
+                  <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                    <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-primary group-hover:text-primary/80 transition-colors" />
+                    <span className="text-[10px] sm:text-xs font-medium text-primary group-hover:text-primary/80 transition-colors text-center leading-tight">Add Image</span>
                   </div>
                 )}
                 <input
@@ -628,17 +644,17 @@ export default function EditorPage() {
               {columns.map((col) => (
                 <div
                   key={col.id}
-                  className="relative group shrink-0 w-24 h-24 rounded-md overflow-hidden border dark:border-slate-600 shadow-sm"
+                  className="relative group shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-md overflow-hidden border dark:border-slate-600 shadow-sm"
                 >
                   <Image src={col.fileUrl || "/placeholder.svg"} alt={col.fileName} fill className="object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-1 text-xs text-white truncate">
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-0.5 sm:p-1 text-[10px] sm:text-xs text-white truncate">
                     {col.fileName}
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      "absolute top-1 right-1 h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-all duration-200",
+                      "absolute top-0.5 right-0.5 sm:top-1 sm:right-1 h-5 w-5 sm:h-6 sm:w-6 text-white opacity-0 group-hover:opacity-100 transition-all duration-200",
                       deleteImageConfirmId === col.id 
                         ? "bg-orange-500 hover:bg-orange-600 opacity-100" 
                         : "bg-red-500 hover:bg-red-600"
@@ -646,9 +662,9 @@ export default function EditorPage() {
                     onClick={(e) => handleDeleteImage(col.id, e)}
                   >
                     {deleteImageConfirmId === col.id ? (
-                      <AlertTriangle className="h-3 w-3" />
+                      <AlertTriangle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                     ) : (
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                     )}
                   </Button>
                 </div>
@@ -664,68 +680,68 @@ export default function EditorPage() {
                 <>
                   <div className="flex items-center gap-2">
                     <Spinner size="sm" className="text-blue-600" />
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">🧠 Step 1: Analyzing image structure...</p>
+                    <p className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-200">🧠 Step 1: Analyzing image structure...</p>
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-300">AI is discovering data fields in your first image</p>
+                  <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-300">AI is discovering data fields in your first image</p>
                 </>
               )}
               {processingStep === 'naming-schema' && (
                 <>
                   <div className="flex items-center gap-2">
                     <Spinner size="sm" className="text-blue-600" />
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">🏷️ Step 2: Generating schema name...</p>
+                    <p className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-200">🏷️ Step 2: Generating schema name...</p>
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-300">AI is creating a meaningful title for your data</p>
+                  <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-300">AI is creating a meaningful title for your data</p>
                 </>
               )}
               {processingStep === 'extracting-values' && (
                 <>
                   <div className="flex items-center gap-2">
                     <Spinner size="sm" className="text-blue-600" />
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">🔍 Step 3: Extracting data values...</p>
+                    <p className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-200">🔍 Step 3: Extracting data values...</p>
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-300">AI is reading and organizing the information</p>
+                  <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-300">AI is reading and organizing the information</p>
                 </>
               )}
               {processingStep === 'idle' && (
                 <>
                   <div className="flex items-center gap-2">
                     <Spinner size="sm" className="text-blue-600" />
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">🤖 Processing your image...</p>
+                    <p className="text-xs sm:text-sm font-medium text-blue-800 dark:text-blue-200">🤖 Processing your image...</p>
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-300">Getting ready to analyze</p>
+                  <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-300">Getting ready to analyze</p>
                 </>
               )}
             </div>
           ) : columns.length > 0 ? (
             <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
-              <p className="text-sm font-medium text-green-800 dark:text-green-200">✅ Images processed successfully!</p>
-              <p className="text-xs text-green-600 dark:text-green-300">Extracted data from {columns.length} image(s) using AI</p>
+              <p className="text-xs sm:text-sm font-medium text-green-800 dark:text-green-200">✅ Images processed successfully!</p>
+              <p className="text-[10px] sm:text-xs text-green-600 dark:text-green-300">Extracted data from {columns.length} image(s) using AI</p>
             </div>
           ) : null}
         </div>
 
         {/* Scrollable Table Area with Explicit Scrollbar */}
         <main className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900">
-          <div className="h-full p-4">
+          <div className="h-full p-2 sm:p-4">
             <div className="h-full bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700 overflow-hidden">
               <div className="h-full overflow-auto">
                 <Table className="min-w-full">
                   <TableHeader className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10">
                     <TableRow>
                       {keys.map((key) => (
-                        <TableHead key={key.id} className="min-w-[150px] bg-slate-50 dark:bg-slate-800/50">
+                        <TableHead key={key.id} className="min-w-[120px] sm:min-w-[150px] bg-slate-50 dark:bg-slate-800/50">
                           <Input
                             type="text"
                             value={key.name}
                             onChange={(e) => actions.updateKeyName(key.id, e.target.value)}
-                            className="h-8 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 font-semibold bg-transparent"
+                            className="h-8 sm:h-9 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 sm:px-2 font-semibold bg-transparent text-sm sm:text-base"
                           />
                         </TableHead>
                       ))}
-                      <TableHead className="w-[50px] bg-slate-50 dark:bg-slate-800/50">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleAddKey}>
-                          <Plus className="h-4 w-4" />
+                      <TableHead className="w-[40px] sm:w-[50px] bg-slate-50 dark:bg-slate-800/50">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={handleAddKey}>
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </TableHead>
                     </TableRow>
@@ -734,29 +750,29 @@ export default function EditorPage() {
                     {columns.map((col) => (
                       <TableRow key={col.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                         {keys.map((key) => (
-                          <TableCell key={key.id}>
+                          <TableCell key={key.id} className="p-1 sm:p-2">
                             <div className="relative">
                               <Input
                                 type="text"
                                 value={col.values[key.id] || ""}
                                 onChange={(e) => actions.updateCellValue(col.id, key.id, e.target.value)}
-                                className="h-8 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 bg-transparent"
+                                className="h-8 sm:h-9 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 sm:px-2 bg-transparent text-sm sm:text-base"
                                 placeholder={isProcessing && !col.values[key.id] ? "..." : ""}
                               />
                               {isProcessing && !col.values[key.id] && (
-                                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                                <div className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2">
                                   <Spinner size="sm" className="text-muted-foreground/50" />
                                 </div>
                               )}
                             </div>
                           </TableCell>
                         ))}
-                        <TableCell>
+                        <TableCell className="p-1 sm:p-2">
                           <Button 
                             variant="ghost" 
                             size="icon" 
                             className={cn(
-                              "h-6 w-6 transition-all duration-200",
+                              "h-6 w-6 sm:h-7 sm:w-7 transition-all duration-200 touch-manipulation",
                               deleteImageConfirmId === col.id && "bg-orange-100 hover:bg-orange-200"
                             )}
                             onClick={(e) => handleDeleteImage(col.id, e)}
