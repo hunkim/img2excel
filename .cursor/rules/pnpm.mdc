@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+let's use pnpm to build and run this project. before run pnpm dev, we should kill previous dev server.

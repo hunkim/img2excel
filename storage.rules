@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for img2excel
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to read/write their own project images
+    match /project-images/{userId}/{projectId}/{imageFile} {
+      // Allow read access to authenticated users for their own images
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow write access to authenticated users for their own images
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024  // Max 10MB per image
+        && request.resource.contentType.matches('image/.*'); // Only image files
+      
+      // Allow delete access to authenticated users for their own images
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+} 
