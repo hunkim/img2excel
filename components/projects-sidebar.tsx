@@ -103,15 +103,32 @@ export function ProjectsSidebar({
 
   const formatDate = (date: Date) => {
     const now = new Date()
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-
-    if (diffInHours < 24) {
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    } else if (diffInHours < 24 * 7) {
-      return date.toLocaleDateString([], { weekday: "short" })
-    } else {
-      return date.toLocaleDateString([], { month: "short", day: "numeric" })
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const dateToCheck = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    // If it's today, show time (e.g., "05:32 PM")
+    if (dateToCheck.getTime() === today.getTime()) {
+      return date.toLocaleTimeString([], { 
+        hour: "2-digit", 
+        minute: "2-digit",
+        hour12: true 
+      })
     }
+    
+    // If it's this year, show month and day (e.g., "Dec 15")
+    if (date.getFullYear() === now.getFullYear()) {
+      return date.toLocaleDateString([], { 
+        month: "short", 
+        day: "numeric" 
+      })
+    }
+    
+    // If it's a different year, show month, day, and year (e.g., "Dec 15, 2023")
+    return date.toLocaleDateString([], { 
+      month: "short", 
+      day: "numeric",
+      year: "numeric"
+    })
   }
 
   const filteredProjects = projects.filter((project) =>
@@ -310,23 +327,18 @@ export function ProjectsSidebar({
                     )}
                     onClick={() => onProjectSelect(project.id)}
                   >
-                    <div className="flex items-start gap-2 sm:gap-3">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-5 w-5 sm:h-6 sm:w-6 opacity-0 group-hover:opacity-100 transition-all duration-200 flex-shrink-0 touch-manipulation",
-                          deleteConfirmId === project.id && "opacity-100 bg-destructive text-destructive-foreground"
-                        )}
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div 
+                        className="relative flex-shrink-0 mt-0.5 w-5 h-5 sm:w-6 sm:h-6"
                         onClick={(e) => handleDeleteProject(project.id, e)}
                       >
                         {deleteConfirmId === project.id ? (
-                          <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-orange-500" />
+                          <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500 transition-all duration-200" />
                         ) : (
-                          <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-destructive" />
+                          <FileSpreadsheet className="h-4 w-4 sm:h-5 sm:w-5 text-slate-500 dark:text-slate-400 group-hover:hidden transition-all duration-200" />
                         )}
-                      </Button>
-                      <FileSpreadsheet className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                        <Trash2 className="h-4 w-4 sm:h-5 sm:w-5 text-destructive hidden group-hover:block transition-all duration-200 absolute top-0 left-0" />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-xs sm:text-sm truncate text-slate-900 dark:text-slate-100">
                           {project.title}

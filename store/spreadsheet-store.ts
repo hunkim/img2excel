@@ -55,6 +55,49 @@ const initialState = {
   lastSaved: null,
 }
 
+// Utility function to generate unique project names
+const generateUniqueProjectName = async (baseName: string, userId: string): Promise<string> => {
+  try {
+    // Get all existing projects for the user
+    const existingProjects = await getUserProjects(userId)
+    const existingTitles = existingProjects.map(p => p.title.toLowerCase())
+    
+    // If base name doesn't exist, use it as-is
+    if (!existingTitles.includes(baseName.toLowerCase())) {
+      return baseName
+    }
+    
+    // Find the highest number suffix for this base name
+    let maxNumber = 1
+    const baseNameLower = baseName.toLowerCase()
+    
+    existingTitles.forEach(title => {
+      // Check for exact match with number suffix: "Base Name (2)", "Base Name (3)", etc.
+      const match = title.match(new RegExp(`^${baseNameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\((\\d+)\\)$`))
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num > maxNumber) {
+          maxNumber = num
+        }
+      }
+    })
+    
+    // Return the next available number
+    return `${baseName} (${maxNumber + 1})`
+  } catch (error) {
+    console.error('❌ Error generating unique project name:', error)
+    // Fallback to timestamp-based uniqueness
+    const timestamp = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+    return `${baseName} (${timestamp})`
+  }
+}
+
 export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
   ...initialState,
   actions: {
@@ -154,7 +197,12 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
               
               if (namingResponse.ok) {
                 const namingData = await namingResponse.json()
-                suggestedTitle = namingData.suggestedTitle
+                let suggestedTitle = namingData.suggestedTitle
+                
+                // Generate unique name if user is logged in
+                if (userId && suggestedTitle) {
+                  suggestedTitle = await generateUniqueProjectName(suggestedTitle, userId)
+                }
                 
                 // Update title immediately after naming
                 set((state) => ({

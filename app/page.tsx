@@ -9,6 +9,50 @@ import { AuthButton } from "@/components/auth-button"
 import { BarChartBig, Bug } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { getProject } from "@/lib/firebase-service"
+import { getUserProjects } from "@/lib/firebase-service"
+
+// Utility function to generate unique project names
+const generateUniqueProjectName = async (baseName: string, userId: string): Promise<string> => {
+  try {
+    // Get all existing projects for the user
+    const existingProjects = await getUserProjects(userId)
+    const existingTitles = existingProjects.map(p => p.title.toLowerCase())
+    
+    // If base name doesn't exist, use it as-is
+    if (!existingTitles.includes(baseName.toLowerCase())) {
+      return baseName
+    }
+    
+    // Find the highest number suffix for this base name
+    let maxNumber = 1
+    const baseNameLower = baseName.toLowerCase()
+    
+    existingTitles.forEach(title => {
+      // Check for exact match with number suffix: "Base Name (2)", "Base Name (3)", etc.
+      const match = title.match(new RegExp(`^${baseNameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\((\\d+)\\)$`))
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num > maxNumber) {
+          maxNumber = num
+        }
+      }
+    })
+    
+    // Return the next available number
+    return `${baseName} (${maxNumber + 1})`
+  } catch (error) {
+    console.error('❌ Error generating unique project name:', error)
+    // Fallback to timestamp-based uniqueness
+    const timestamp = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+    return `${baseName} (${timestamp})`
+  }
+}
 
 export default function LandingPage() {
   const router = useRouter()
@@ -59,12 +103,6 @@ export default function LandingPage() {
     router.push("/editor")
   }
 
-  const generateUniqueProjectName = (baseName: string, existingProjects: any[]): string => {
-    // This is a simplified version - in a real app, you'd get the projects list
-    // For now, we'll just add a timestamp to make it unique
-    return `${baseName} (${new Date().getTime()})`
-  }
-
   const handleCreateFromTemplate = async (templateProject: any) => {
     try {
       console.log('🔄 Creating project from template:', templateProject.title)
@@ -75,8 +113,10 @@ export default function LandingPage() {
         throw new Error('Template project not found')
       }
       
-      // Generate unique name (simplified for home page)
-      const newProjectName = `${templateProject.title} (Copy)`
+      // Generate unique name using the new function
+      const newProjectName = user?.uid 
+        ? await generateUniqueProjectName(templateProject.title, user.uid)
+        : `${templateProject.title} (Copy)`
       
       // Clear current state and set up new project with template schema
       actions.resetSheet()

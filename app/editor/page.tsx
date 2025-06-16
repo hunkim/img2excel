@@ -40,6 +40,8 @@ import { AuthButton } from "@/components/auth-button"
 import { useAuth } from "@/hooks/useAuth"
 import { Spinner } from "@/components/ui/spinner"
 import { listenToUserProjects, deleteProject as deleteFirebaseProject, getProject, type FirebaseProject } from "@/lib/firebase-service"
+import { getUserProjects } from "@/lib/firebase-service"
+import { ProjectsSidebar } from "@/components/projects-sidebar"
 
 // Project interface for the sidebar
 interface Project {
@@ -51,20 +53,56 @@ interface Project {
   fieldCount: number
 }
 
+// Utility function to generate unique project names
+const generateUniqueProjectName = async (baseName: string, userId: string): Promise<string> => {
+  try {
+    // Get all existing projects for the user
+    const existingProjects = await getUserProjects(userId)
+    const existingTitles = existingProjects.map(p => p.title.toLowerCase())
+    
+    // If base name doesn't exist, use it as-is
+    if (!existingTitles.includes(baseName.toLowerCase())) {
+      return baseName
+    }
+    
+    // Find the highest number suffix for this base name
+    let maxNumber = 1
+    const baseNameLower = baseName.toLowerCase()
+    
+    existingTitles.forEach(title => {
+      // Check for exact match with number suffix: "Base Name (2)", "Base Name (3)", etc.
+      const match = title.match(new RegExp(`^${baseNameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\((\\d+)\\)$`))
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num > maxNumber) {
+          maxNumber = num
+        }
+      }
+    })
+    
+    // Return the next available number
+    return `${baseName} (${maxNumber + 1})`
+  } catch (error) {
+    console.error('❌ Error generating unique project name:', error)
+    // Fallback to timestamp-based uniqueness
+    const timestamp = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+    return `${baseName} (${timestamp})`
+  }
+}
+
 export default function EditorPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
-  const deleteTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [deleteImageConfirmId, setDeleteImageConfirmId] = useState<string | null>(null)
   const deleteImageTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const [sidebarWidth, setSidebarWidth] = useState(320) // Default 320px
-  const [isResizing, setIsResizing] = useState(false)
   // Use the actual Zustand store
   const sheetTitle = useSpreadsheetStore((state) => state.sheetTitle)
   const keys = useSpreadsheetStore((state) => state.keys)
@@ -77,73 +115,6 @@ export default function EditorPage() {
   const actions = useSpreadsheetStore((state) => state.actions)
   const processingRef = useRef(false)
 
-  // Load projects from Firebase with real-time updates
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setLoading(true)
-      
-      // Set up real-time listener for user projects
-      const unsubscribe = listenToUserProjects(user.uid, (firebaseProjects: FirebaseProject[]) => {
-        console.log('🔄 Editor sidebar received update:', firebaseProjects.length, 'projects')
-        
-        // Convert Firebase projects to local Project format
-        const projects: Project[] = firebaseProjects.map((fbProject) => ({
-          id: fbProject.id,
-          title: fbProject.title,
-          createdAt: fbProject.createdAt 
-            ? (fbProject.createdAt instanceof Date ? fbProject.createdAt : fbProject.createdAt.toDate())
-            : new Date(),
-          updatedAt: fbProject.updatedAt 
-            ? (fbProject.updatedAt instanceof Date ? fbProject.updatedAt : fbProject.updatedAt.toDate())
-            : new Date(),
-          imageCount: fbProject.columns?.length || 0,
-          fieldCount: fbProject.keys?.length || 0
-        }))
-        
-        console.log('✅ Converted projects for editor sidebar:', projects)
-        setProjects(projects)
-        setLoading(false)
-        
-        // Set active project to the most recent one if none selected
-        if (!activeProjectId && projects.length > 0) {
-          setActiveProjectId(projects[0].id)
-        }
-        
-        // Auto-open sidebar on desktop if user has projects
-        if (projects.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 1024) {
-          setSidebarOpen(true)
-        }
-      })
-      
-      // Cleanup listener on unmount
-      return () => {
-        unsubscribe()
-      }
-    } else {
-      setProjects([])
-      setLoading(false)
-    }
-  }, [isAuthenticated, user])
-
-
-
-  const formatDate = (date: Date) => {
-    const now = new Date()
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-
-    if (diffInHours < 24) {
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    } else if (diffInHours < 24 * 7) {
-      return date.toLocaleDateString([], { weekday: "short" })
-    } else {
-      return date.toLocaleDateString([], { month: "short", day: "numeric" })
-    }
-  }
-
-  const filteredProjects = projects.filter((project) =>
-    project.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
-
   const handleSelectProject = async (projectId: string) => {
     try {
       setActiveProjectId(projectId)
@@ -155,45 +126,6 @@ export default function EditorPage() {
     } catch (error) {
       console.error("❌ Error loading project:", error)
       alert("Failed to load project. Please try again.")
-    }
-  }
-
-  const handleDeleteProject = async (projectId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
-    
-    if (deleteConfirmId === projectId) {
-      // Second click - actually delete the project
-      try {
-        await deleteFirebaseProject(projectId)
-        // The real-time listener will automatically update the projects list
-        if (activeProjectId === projectId && projects.length > 1) {
-          const remainingProjects = projects.filter((p) => p.id !== projectId)
-          setActiveProjectId(remainingProjects[0].id)
-        }
-        setDeleteConfirmId(null)
-        if (deleteTimeoutRef.current) {
-          clearTimeout(deleteTimeoutRef.current)
-          deleteTimeoutRef.current = null
-        }
-      } catch (error) {
-        console.error('❌ Error deleting project:', error)
-        alert('Failed to delete project. Please try again.')
-        setDeleteConfirmId(null)
-      }
-    } else {
-      // First click - show confirmation state
-      setDeleteConfirmId(projectId)
-      
-      // Clear any existing timeout
-      if (deleteTimeoutRef.current) {
-        clearTimeout(deleteTimeoutRef.current)
-      }
-      
-      // Auto-revert after 3 seconds
-      deleteTimeoutRef.current = setTimeout(() => {
-        setDeleteConfirmId(null)
-        deleteTimeoutRef.current = null
-      }, 3000)
     }
   }
 
@@ -231,47 +163,9 @@ export default function EditorPage() {
     }
   }
 
-  // Resize functionality
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setIsResizing(true)
-    e.preventDefault()
-  }, [])
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing) return
-    
-    const newWidth = e.clientX
-    // Constrain width between 240px and 600px
-    const constrainedWidth = Math.min(Math.max(newWidth, 240), 600)
-    setSidebarWidth(constrainedWidth)
-  }, [isResizing])
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false)
-  }, [])
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
-        document.body.style.cursor = ''
-        document.body.style.userSelect = ''
-      }
-    }
-  }, [isResizing, handleMouseMove, handleMouseUp])
-
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      if (deleteTimeoutRef.current) {
-        clearTimeout(deleteTimeoutRef.current)
-      }
       if (deleteImageTimeoutRef.current) {
         clearTimeout(deleteImageTimeoutRef.current)
       }
@@ -284,32 +178,6 @@ export default function EditorPage() {
     setActiveProjectId(null)
   }
 
-  const generateUniqueProjectName = (baseName: string, existingProjects: Project[]): string => {
-    const existingNames = existingProjects.map(p => p.title.toLowerCase())
-    const baseNameLower = baseName.toLowerCase()
-    
-    // If base name doesn't exist, use it
-    if (!existingNames.includes(baseNameLower)) {
-      return baseName
-    }
-    
-    // Find the highest number suffix
-    let maxNumber = 1
-    const pattern = new RegExp(`^${baseNameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\((\\d+)\\)$`)
-    
-    existingNames.forEach(name => {
-      const match = name.match(pattern)
-      if (match) {
-        const num = parseInt(match[1])
-        if (num > maxNumber) {
-          maxNumber = num
-        }
-      }
-    })
-    
-    return `${baseName} (${maxNumber + 1})`
-  }
-
   const handleCreateFromTemplate = async (templateProject: Project) => {
     try {
       console.log('🔄 Creating project from template:', templateProject.title)
@@ -320,8 +188,10 @@ export default function EditorPage() {
         throw new Error('Template project not found')
       }
       
-      // Generate unique name
-      const newProjectName = generateUniqueProjectName(templateProject.title, projects)
+      // Generate unique name using the new function
+      const newProjectName = user?.uid 
+        ? await generateUniqueProjectName(templateProject.title, user.uid)
+        : `${templateProject.title} (Copy)`
       
       // Clear current state and set up new project with template schema
       actions.resetSheet()
@@ -354,11 +224,8 @@ export default function EditorPage() {
   }
 
   const downloadAsCSV = () => {
-    if (keys.length === 0) {
-      alert("No data to download.")
-      return
-    }
-
+    // This function should only be called when keys.length > 0
+    // since the button is disabled when there's no data
     let csvContent = ""
     const headerRow = keys.map((key) => key.name.replace(/,/g, "")).join(",")
     csvContent += headerRow + "\r\n"
@@ -375,175 +242,13 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
-      {/* Mobile Overlay */}
-      {isAuthenticated && sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Panel */}
-      {isAuthenticated && sidebarOpen && (
-        <div 
-          className={cn(
-            "bg-white dark:bg-slate-900 border-r dark:border-slate-700 flex flex-col relative z-50",
-            "fixed lg:relative inset-y-0 left-0 w-80 lg:w-auto"
-          )}
-          style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${sidebarWidth}px` : '320px' }}
-        >
-          {/* Header */}
-          <div className="p-3 border-b dark:border-slate-700 flex items-center justify-between">
-            <h2 className="font-semibold text-sm text-slate-700 dark:text-slate-300">My Projects</h2>
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="h-6 w-6">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* New Project Dropdown */}
-          <div className="p-3 border-b dark:border-slate-700">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="w-full justify-between" size="sm">
-                  <div className="flex items-center">
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Project
-                  </div>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem onClick={handleCreateNewProject}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Template
-                </DropdownMenuItem>
-                {projects.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    {projects.slice(0, 10).map((project) => (
-                      <DropdownMenuItem 
-                        key={project.id}
-                        onClick={() => handleCreateFromTemplate(project)}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        <div className="flex-1 min-w-0">
-                          <div className="truncate">{project.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {project.fieldCount} fields
-                          </div>
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* Search */}
-          <div className="p-3 border-b dark:border-slate-700">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search projects..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8"
-              />
-            </div>
-          </div>
-
-          {/* Projects List */}
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {loading ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  Loading projects...
-                </div>
-              ) : filteredProjects.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  {searchQuery ? "No projects found" : "No projects yet"}
-                </div>
-              ) : (
-                filteredProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    className={cn(
-                      "group relative p-2 rounded-md cursor-pointer transition-colors",
-                      "hover:bg-slate-100 dark:hover:bg-slate-800",
-                      activeProjectId === project.id && "bg-slate-100 dark:bg-slate-800",
-                    )}
-                    onClick={() => handleSelectProject(project.id)}
-                  >
-                    <div className="flex items-start gap-2">
-                      <FileSpreadsheet className="h-4 w-4 mt-0.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate text-slate-900 dark:text-slate-100">
-                          {project.title}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{formatDate(project.updatedAt)}</span>
-                          <span>•</span>
-                          <span>{project.imageCount} images</span>
-                          <span>•</span>
-                          <span>{project.fieldCount} fields</span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-6 w-6 opacity-0 group-hover:opacity-100 transition-all duration-200",
-                          deleteConfirmId === project.id && "opacity-100 bg-destructive text-destructive-foreground"
-                        )}
-                        onClick={(e) => handleDeleteProject(project.id, e)}
-                      >
-                        {deleteConfirmId === project.id ? (
-                          <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
-                        ) : (
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-
-          {/* Footer */}
-          <div className="p-3 border-t dark:border-slate-700 text-xs text-muted-foreground">
-            {projects.length} project{projects.length !== 1 ? "s" : ""}
-          </div>
-
-          {/* Resize Handle */}
-          <div
-            className="absolute right-0 top-0 bottom-0 w-1 bg-transparent hover:bg-blue-500 cursor-col-resize group transition-colors"
-            onMouseDown={handleMouseDown}
-          >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="bg-blue-500 text-white p-1 rounded shadow-lg">
-                <GripVertical className="h-3 w-3" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sidebar Toggle Button (when closed) */}
-      {isAuthenticated && !sidebarOpen && (
-        <div className="fixed left-2 top-4 z-40">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-            className="h-8 w-8 bg-white dark:bg-slate-800 shadow-md"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+      <ProjectsSidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onProjectSelect={handleSelectProject}
+        onNewProject={handleCreateNewProject}
+        onCreateFromTemplate={handleCreateFromTemplate}
+      />
 
             {/* Main Content */}
       <div className="flex flex-col flex-1 h-full overflow-hidden">
@@ -596,7 +301,14 @@ export default function EditorPage() {
                 ) : null}
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={downloadAsCSV} className="text-xs sm:text-sm">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={downloadAsCSV} 
+              disabled={keys.length === 0}
+              className="text-xs sm:text-sm"
+              title={keys.length === 0 ? "No data to download" : "Download data as CSV file"}
+            >
               <Download className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
               <span className="hidden sm:inline">Download CSV</span>
             </Button>
