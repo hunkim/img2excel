@@ -223,14 +223,10 @@ export function ProjectsSidebar({
 
   return (
     <>
-      {/* Sidebar */}
+      {/* Sidebar - Now works within ResizablePanel */}
       <div
         ref={resizeRef}
-        className={cn(
-          "fixed left-0 top-0 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 shadow-lg transition-transform duration-300 ease-in-out z-50 flex",
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-        style={{ width: `${sidebarWidth}px` }}
+        className="h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex"
       >
         {/* Sidebar Content */}
         <div className="flex-1 flex flex-col h-full">
@@ -365,22 +361,10 @@ export function ProjectsSidebar({
           </div>
         </div>
 
-        {/* Resize Handle */}
-        <div
-          className="w-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 cursor-col-resize transition-colors flex items-center justify-center group"
-          onMouseDown={handleMouseDown}
-        >
-          <div className="w-0.5 h-8 bg-slate-400 dark:bg-slate-500 group-hover:bg-slate-500 dark:group-hover:bg-slate-400 transition-colors" />
-        </div>
+
       </div>
 
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onToggle}
-        />
-      )}
+
     </>
   )
 } 

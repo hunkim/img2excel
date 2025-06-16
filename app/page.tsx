@@ -12,6 +12,7 @@ import { getProject } from "@/lib/firebase-service"
 import { getUserProjects } from "@/lib/firebase-service"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 
 // Utility function to generate unique project names
 const generateUniqueProjectName = async (baseName: string, userId: string): Promise<string> => {
@@ -141,61 +142,83 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 relative overflow-hidden">
-      {/* Projects Sidebar */}
-      <ProjectsSidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onProjectSelect={handleProjectSelect}
-        onNewProject={handleNewProject}
-        onCreateFromTemplate={handleCreateFromTemplate}
-        onWidthChange={setSidebarWidth}
-      />
-      
-      {/* Main Content Container - Pushed right when sidebar is open */}
-      <div 
-        className={cn(
-          "min-h-screen transition-all duration-300 ease-in-out"
-        )}
-        style={{
-          marginLeft: sidebarOpen && isAuthenticated ? `${sidebarWidth}px` : '0'
-        }}
-      >
-        {/* Sidebar Toggle Button */}
-        {isAuthenticated && (
-          <div className="fixed left-2 sm:left-4 top-2 sm:top-4 z-40">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="h-8 w-8 sm:h-10 sm:w-10 bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl transition-shadow touch-manipulation"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
+      {isAuthenticated ? (
+        <ResizablePanelGroup direction="horizontal" className="min-h-screen">
+          {/* Projects Sidebar Panel */}
+          {sidebarOpen && (
+            <>
+              <ResizablePanel 
+                defaultSize={25} 
+                minSize={20} 
+                maxSize={45}
+                className={cn("relative", !sidebarOpen && "hidden")}
+                id="sidebar-panel"
+                order={1}
+              >
+                <div className="h-full relative">
+                  <ProjectsSidebar
+                    isOpen={sidebarOpen}
+                    onToggle={() => setSidebarOpen(!sidebarOpen)}
+                    onProjectSelect={handleProjectSelect}
+                    onNewProject={handleNewProject}
+                    onCreateFromTemplate={handleCreateFromTemplate}
+                    onWidthChange={setSidebarWidth}
+                  />
+                </div>
+              </ResizablePanel>
+              
+              {/* Resizable Handle */}
+              <ResizableHandle withHandle />
+            </>
+          )}
+          
+          {/* Main Content Panel */}
+          <ResizablePanel 
+            defaultSize={75} 
+            minSize={55}
+            id="main-panel"
+            order={2}
+          >
+            <div className="min-h-screen relative"
+              style={{
+                background: 'linear-gradient(to bottom right, rgb(248 250 252), rgb(226 232 240))',
+              }}
             >
-              {sidebarOpen ? (
-                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-              ) : (
-                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
-              )}
-            </Button>
-          </div>
-        )}
 
-        {/* Header */}
-        <header className="relative z-20 p-3 sm:p-4 md:p-6 flex justify-between items-center">
-          <div className="flex items-center space-x-2 sm:space-x-3 text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200">
-            <BarChartBig className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-            <span className="text-lg sm:text-2xl">img2excel</span>
-            <a
-              href="https://github.com/hunkim/img2excel/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              title="Report an issue"
-            >
-              <Bug className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
-            </a>
-          </div>
-          <AuthButton />
-        </header>
+              {/* Header */}
+              <header className="relative z-20 p-3 sm:p-4 md:p-6 flex justify-between items-center">
+                <div className="flex items-center space-x-2 sm:space-x-3 text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200">
+                  {/* Sidebar Toggle Button - Positioned before title */}
+                  {isAuthenticated && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setSidebarOpen(!sidebarOpen)}
+                      className="h-8 w-8 sm:h-9 sm:w-9 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 shadow-sm hover:shadow-md transition-all duration-200 flex-shrink-0 mr-1"
+                      title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                    >
+                      {sidebarOpen ? (
+                        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-300" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-300" />
+                      )}
+                    </Button>
+                  )}
+                  <BarChartBig className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                  <span className="text-lg sm:text-2xl">img2excel</span>
+                  <a
+                    href="https://github.com/hunkim/img2excel/issues"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    title="Report an issue"
+                  >
+                    <Bug className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
+                  </a>
+                </div>
+                <AuthButton />
+              </header>
 
         {/* Hero Section */}
         <main className="relative z-10 min-h-[calc(100vh-120px)] sm:min-h-[calc(100vh-140px)] flex items-center">
@@ -265,29 +288,144 @@ export default function LandingPage() {
           </div>
         </main>
 
-        {/* Footer */}
-        <footer className="relative z-20 p-4 text-center text-sm text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-white/20">
-          Powered by{" "}
-          <a 
-            href="https://www.upstage.ai/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-primary hover:text-primary/80 underline transition-colors"
-          >
-            Upstage
-          </a>
-          {" "}and{" "}
-          <a 
-            href="https://www.upstage.ai/products/information-extract" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-primary hover:text-primary/80 underline transition-colors"
-          >
-            Agentic Information Extractor
-          </a>
-          . &copy; {new Date().getFullYear()} img2excel.
-        </footer>
-      </div>
+              {/* Footer */}
+              <footer className="relative z-20 p-4 text-center text-sm text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-white/20">
+                Powered by{" "}
+                <a 
+                  href="https://www.upstage.ai/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:text-primary/80 underline transition-colors"
+                >
+                  Upstage
+                </a>
+                {" "}and{" "}
+                <a 
+                  href="https://www.upstage.ai/products/information-extract" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:text-primary/80 underline transition-colors"
+                >
+                  Agentic Information Extractor
+                </a>
+                . &copy; {new Date().getFullYear()} img2excel.
+              </footer>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        // Non-authenticated layout - simple structure without sidebar
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 dark:from-slate-900 dark:to-slate-800 relative overflow-hidden">
+          {/* Header */}
+          <header className="relative z-20 p-3 sm:p-4 md:p-6 flex justify-between items-center">
+            <div className="flex items-center space-x-2 sm:space-x-3 text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200">
+              <BarChartBig className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <span className="text-lg sm:text-2xl">img2excel</span>
+              <a
+                href="https://github.com/hunkim/img2excel/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                title="Report an issue"
+              >
+                <Bug className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
+              </a>
+            </div>
+            <AuthButton />
+          </header>
+
+          {/* Hero Section */}
+          <main className="relative z-10 min-h-[calc(100vh-120px)] sm:min-h-[calc(100vh-140px)] flex items-center">
+            <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12">
+              <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
+                {/* Left Content - Text + Cover Image */}
+                <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
+                  {/* Text Content */}
+                  <div className="space-y-3 sm:space-y-4">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+                      img2excel
+                    </h1>
+                    <p className="text-lg sm:text-xl md:text-2xl font-semibold text-slate-700 dark:text-slate-300">
+                      Never Manually Type Data Again.
+                    </p>
+                    <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 font-medium">
+                      Turn Images into Spreadsheets, Instantly.
+                    </p>
+                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-lg mx-auto lg:mx-0">
+                      Upload or paste any image with data—receipts, tables, lists, invoices—and watch as it transforms into an editable, organized spreadsheet. Stop wasting time transcribing. Start automating.
+                    </p>
+                  </div>
+
+                  {/* Cover Image Showcase */}
+                  <div className="relative max-w-sm sm:max-w-lg mx-auto lg:mx-0">
+                    {coverImage && (
+                      <div className="relative">
+                        {/* Main Cover Image */}
+                        <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+                          <Image
+                            src={coverImage}
+                            alt="img2excel in action - transforming images to spreadsheets"
+                            width={500}
+                            height={333}
+                            className="w-full h-auto object-cover"
+                            priority
+                          />
+                          {/* Overlay gradient for better visual appeal */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
+                        </div>
+                        
+                        {/* Floating elements for visual appeal */}
+                        <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 w-12 h-12 sm:w-16 sm:h-16 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                        <div className="absolute -bottom-3 -left-3 sm:-bottom-4 sm:-left-4 w-16 h-16 sm:w-24 sm:h-24 bg-blue-500/10 rounded-full blur-2xl animate-pulse delay-1000" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Content - Upload Section */}
+                <div className="flex items-center justify-center">
+                  <div className="w-full max-w-sm sm:max-w-md">
+                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-xl shadow-2xl border border-white/20">
+                      <div className="text-center mb-4 sm:mb-6">
+                        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+                          Get Started
+                        </h2>
+                        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
+                          Upload your first image to begin
+                        </p>
+                      </div>
+                      <ImageUploader onImageUpload={handleImageUpload} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+
+          {/* Footer */}
+          <footer className="relative z-20 p-4 text-center text-sm text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-white/20">
+            Powered by{" "}
+            <a 
+              href="https://www.upstage.ai/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 underline transition-colors"
+            >
+              Upstage
+            </a>
+            {" "}and{" "}
+            <a 
+              href="https://www.upstage.ai/products/information-extract" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 underline transition-colors"
+            >
+              Agentic Information Extractor
+            </a>
+            . &copy; {new Date().getFullYear()} img2excel.
+          </footer>
+        </div>
+      )}
     </div>
   )
 }
