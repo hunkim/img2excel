@@ -43,6 +43,7 @@ interface ProjectsSidebarProps {
   onProjectSelect: (projectId: string) => void
   onNewProject: () => void
   onCreateFromTemplate?: (templateProject: Project) => void
+  onWidthChange?: (width: number) => void
 }
 
 export function ProjectsSidebar({ 
@@ -50,7 +51,8 @@ export function ProjectsSidebar({
   onToggle, 
   onProjectSelect, 
   onNewProject,
-  onCreateFromTemplate
+  onCreateFromTemplate,
+  onWidthChange
 }: ProjectsSidebarProps) {
   const { user, isAuthenticated } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
@@ -183,7 +185,8 @@ export function ProjectsSidebar({
     // Constrain width between 240px and 600px
     const constrainedWidth = Math.min(Math.max(newWidth, 240), 600)
     setSidebarWidth(constrainedWidth)
-  }, [isResizing])
+    onWidthChange?.(constrainedWidth)
+  }, [isResizing, onWidthChange])
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
@@ -220,102 +223,97 @@ export function ProjectsSidebar({
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onToggle}
-        />
-      )}
-
       {/* Sidebar */}
-      {isOpen && (
-        <div 
-          ref={resizeRef}
-          className={cn(
-            "fixed left-0 top-0 h-full bg-white dark:bg-slate-900 border-r dark:border-slate-700 flex flex-col z-50 shadow-xl",
-            "w-80 lg:w-auto"
-          )}
-          style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${sidebarWidth}px` : '320px' }}
-        >
+      <div
+        ref={resizeRef}
+        className={cn(
+          "fixed left-0 top-0 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 shadow-lg transition-transform duration-300 ease-in-out z-50 flex",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+        style={{ width: `${sidebarWidth}px` }}
+      >
+        {/* Sidebar Content */}
+        <div className="flex-1 flex flex-col h-full">
           {/* Header */}
-          <div className="p-3 sm:p-4 border-b dark:border-slate-700 flex items-center justify-between">
-            <h2 className="font-semibold text-base sm:text-lg text-slate-700 dark:text-slate-300">My Projects</h2>
-            <Button variant="ghost" size="icon" onClick={onToggle} className="h-7 w-7 sm:h-8 sm:w-8">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-200 dark:border-slate-700">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">My Projects</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
 
           {/* New Project Dropdown */}
-          <div className="p-3 sm:p-4 border-b dark:border-slate-700">
-            {onCreateFromTemplate ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="w-full justify-between text-sm" size="sm">
-                    <div className="flex items-center">
-                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                      New Project
-                    </div>
-                    <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuItem onClick={onNewProject}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Template
-                  </DropdownMenuItem>
-                  {projects.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      {projects.slice(0, 10).map((project) => (
-                        <DropdownMenuItem 
-                          key={project.id}
-                          onClick={() => onCreateFromTemplate(project)}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          <div className="flex-1 min-w-0">
-                            <div className="truncate">{project.title}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {project.fieldCount} fields
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button onClick={onNewProject} className="w-full justify-start" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
-              </Button>
-            )}
+          <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-700">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="w-full justify-between" size="sm">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Project
+                  </div>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem onClick={onNewProject}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Template
+                </DropdownMenuItem>
+                {projects.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    {projects.slice(0, 5).map((project) => (
+                      <DropdownMenuItem
+                        key={project.id}
+                        onClick={() => onCreateFromTemplate?.(project)}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Copy className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate text-xs">{project.title}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                          {project.fieldCount} fields
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Search */}
-          <div className="p-3 sm:p-4 border-b dark:border-slate-700">
+          <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-700">
             <div className="relative">
-              <Search className="absolute left-2 sm:left-3 top-2 sm:top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                type="text"
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-7 sm:pl-9 h-8 sm:h-9 text-sm"
+                className="pl-8 text-sm"
               />
             </div>
           </div>
 
           {/* Projects List */}
           <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
+            <div className="p-2 sm:p-3 space-y-1">
               {loading ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  Loading projects...
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-muted-foreground">Loading projects...</div>
                 </div>
               ) : filteredProjects.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  {searchQuery ? "No projects found" : "No projects yet"}
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-muted-foreground">
+                    {searchQuery ? "No projects found" : "No projects yet"}
+                  </div>
                 </div>
               ) : (
                 filteredProjects.map((project) => (
@@ -360,36 +358,28 @@ export function ProjectsSidebar({
           </ScrollArea>
 
           {/* Footer */}
-          <div className="p-3 sm:p-4 border-t dark:border-slate-700 text-[10px] sm:text-xs text-muted-foreground">
-            {projects.length} project{projects.length !== 1 ? "s" : ""}
-          </div>
-
-          {/* Resize Handle - Hidden on mobile */}
-          <div
-            className="absolute right-0 top-0 bottom-0 w-1 bg-transparent hover:bg-blue-500 cursor-col-resize group transition-colors hidden lg:block"
-            onMouseDown={handleMouseDown}
-          >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="bg-blue-500 text-white p-1 rounded shadow-lg">
-                <GripVertical className="h-3 w-3" />
-              </div>
+          <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-700 text-center">
+            <div className="text-xs text-muted-foreground">
+              {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
-      )}
 
-      {/* Toggle Button (when closed) */}
-      {!isOpen && isAuthenticated && (
-        <div className="fixed left-2 sm:left-4 top-2 sm:top-4 z-40">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onToggle}
-            className="h-8 w-8 sm:h-10 sm:w-10 bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl transition-shadow touch-manipulation"
-          >
-            <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
-          </Button>
+        {/* Resize Handle */}
+        <div
+          className="w-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 cursor-col-resize transition-colors flex items-center justify-center group"
+          onMouseDown={handleMouseDown}
+        >
+          <div className="w-0.5 h-8 bg-slate-400 dark:bg-slate-500 group-hover:bg-slate-500 dark:group-hover:bg-slate-400 transition-colors" />
         </div>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onToggle}
+        />
       )}
     </>
   )

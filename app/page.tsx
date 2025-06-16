@@ -6,10 +6,12 @@ import { ImageUploader } from "@/components/image-uploader"
 import { ProjectsSidebar } from "@/components/projects-sidebar"
 import { useSpreadsheetStore } from "@/store/spreadsheet-store"
 import { AuthButton } from "@/components/auth-button"
-import { BarChartBig, Bug } from "lucide-react"
+import { BarChartBig, Bug, ChevronLeft, ChevronRight } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { getProject } from "@/lib/firebase-service"
 import { getUserProjects } from "@/lib/firebase-service"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 // Utility function to generate unique project names
 const generateUniqueProjectName = async (baseName: string, userId: string): Promise<string> => {
@@ -58,7 +60,8 @@ export default function LandingPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [coverImage, setCoverImage] = useState<string>("")
+  const [sidebarWidth, setSidebarWidth] = useState(320)
+  const [coverImage, setCoverImage] = useState<string | null>(null)
   const actions = useSpreadsheetStore((state) => state.actions)
 
   // Randomly select cover image on component mount
@@ -146,126 +149,145 @@ export default function LandingPage() {
         onProjectSelect={handleProjectSelect}
         onNewProject={handleNewProject}
         onCreateFromTemplate={handleCreateFromTemplate}
+        onWidthChange={setSidebarWidth}
       />
       
-      {/* Mobile Overlay */}
-      {sidebarOpen && isAuthenticated && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Main Content Container - Pushed right when sidebar is open */}
+      <div 
+        className={cn(
+          "min-h-screen transition-all duration-300 ease-in-out"
+        )}
+        style={{
+          marginLeft: sidebarOpen && isAuthenticated ? `${sidebarWidth}px` : '0'
+        }}
+      >
+        {/* Sidebar Toggle Button */}
+        {isAuthenticated && (
+          <div className="fixed left-2 sm:left-4 top-2 sm:top-4 z-40">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="h-8 w-8 sm:h-10 sm:w-10 bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl transition-shadow touch-manipulation"
+            >
+              {sidebarOpen ? (
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              ) : (
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+              )}
+            </Button>
+          </div>
+        )}
 
-      {/* Header */}
-      <header className="relative z-20 p-3 sm:p-4 md:p-6 flex justify-between items-center">
-        <div className="flex items-center space-x-2 sm:space-x-3 text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200">
-          <BarChartBig className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-          <span className="text-lg sm:text-2xl">img2excel</span>
-          <a
-            href="https://github.com/hunkim/img2excel/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            title="Report an issue"
-          >
-            <Bug className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
-          </a>
-        </div>
-        <AuthButton />
-      </header>
+        {/* Header */}
+        <header className="relative z-20 p-3 sm:p-4 md:p-6 flex justify-between items-center">
+          <div className="flex items-center space-x-2 sm:space-x-3 text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200">
+            <BarChartBig className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            <span className="text-lg sm:text-2xl">img2excel</span>
+            <a
+              href="https://github.com/hunkim/img2excel/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              title="Report an issue"
+            >
+              <Bug className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" />
+            </a>
+          </div>
+          <AuthButton />
+        </header>
 
-      {/* Hero Section */}
-      <main className={`relative z-10 min-h-[calc(100vh-120px)] sm:min-h-[calc(100vh-140px)] flex items-center transition-all duration-300 ${
-        sidebarOpen && isAuthenticated ? 'lg:ml-80' : ''
-      }`}>
-        <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
-            {/* Left Content - Text + Cover Image */}
-            <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
-              {/* Text Content */}
-              <div className="space-y-3 sm:space-y-4">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-                  img2excel
-                </h1>
-                <p className="text-lg sm:text-xl md:text-2xl font-semibold text-slate-700 dark:text-slate-300">
-                  Never Manually Type Data Again.
-                </p>
-                <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 font-medium">
-                  Turn Images into Spreadsheets, Instantly.
-                </p>
-                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-lg mx-auto lg:mx-0">
-                  Upload or paste any image with data—receipts, tables, lists, invoices—and watch as it transforms into an editable, organized spreadsheet. Stop wasting time transcribing. Start automating.
-                </p>
-              </div>
+        {/* Hero Section */}
+        <main className="relative z-10 min-h-[calc(100vh-120px)] sm:min-h-[calc(100vh-140px)] flex items-center">
+          <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12">
+            <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
+              {/* Left Content - Text + Cover Image */}
+              <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
+                {/* Text Content */}
+                <div className="space-y-3 sm:space-y-4">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+                    img2excel
+                  </h1>
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-slate-700 dark:text-slate-300">
+                    Never Manually Type Data Again.
+                  </p>
+                  <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 font-medium">
+                    Turn Images into Spreadsheets, Instantly.
+                  </p>
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-lg mx-auto lg:mx-0">
+                    Upload or paste any image with data—receipts, tables, lists, invoices—and watch as it transforms into an editable, organized spreadsheet. Stop wasting time transcribing. Start automating.
+                  </p>
+                </div>
 
-              {/* Cover Image Showcase */}
-              <div className="relative max-w-sm sm:max-w-lg mx-auto lg:mx-0">
-                {coverImage && (
-                  <div className="relative">
-                    {/* Main Cover Image */}
-                    <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl bg-white/10 backdrop-blur-sm border border-white/20">
-                      <Image
-                        src={coverImage}
-                        alt="img2excel in action - transforming images to spreadsheets"
-                        width={500}
-                        height={333}
-                        className="w-full h-auto object-cover"
-                        priority
-                      />
-                      {/* Overlay gradient for better visual appeal */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
+                {/* Cover Image Showcase */}
+                <div className="relative max-w-sm sm:max-w-lg mx-auto lg:mx-0">
+                  {coverImage && (
+                    <div className="relative">
+                      {/* Main Cover Image */}
+                      <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+                        <Image
+                          src={coverImage}
+                          alt="img2excel in action - transforming images to spreadsheets"
+                          width={500}
+                          height={333}
+                          className="w-full h-auto object-cover"
+                          priority
+                        />
+                        {/* Overlay gradient for better visual appeal */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
+                      </div>
+                      
+                      {/* Floating elements for visual appeal */}
+                      <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 w-12 h-12 sm:w-16 sm:h-16 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                      <div className="absolute -bottom-3 -left-3 sm:-bottom-4 sm:-left-4 w-16 h-16 sm:w-24 sm:h-24 bg-blue-500/10 rounded-full blur-2xl animate-pulse delay-1000" />
                     </div>
-                    
-                    {/* Floating elements for visual appeal */}
-                    <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 w-12 h-12 sm:w-16 sm:h-16 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                    <div className="absolute -bottom-3 -left-3 sm:-bottom-4 sm:-left-4 w-16 h-16 sm:w-24 sm:h-24 bg-blue-500/10 rounded-full blur-2xl animate-pulse delay-1000" />
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Right Content - Upload Section */}
-            <div className="flex items-center justify-center">
-              <div className="w-full max-w-sm sm:max-w-md">
-                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-xl shadow-2xl border border-white/20">
-                  <div className="text-center mb-4 sm:mb-6">
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
-                      Get Started
-                    </h2>
-                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-                      Upload your first image to begin
-                    </p>
+              {/* Right Content - Upload Section */}
+              <div className="flex items-center justify-center">
+                <div className="w-full max-w-sm sm:max-w-md">
+                  <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-xl shadow-2xl border border-white/20">
+                    <div className="text-center mb-4 sm:mb-6">
+                      <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+                        Get Started
+                      </h2>
+                      <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
+                        Upload your first image to begin
+                      </p>
+                    </div>
+                    <ImageUploader onImageUpload={handleImageUpload} />
                   </div>
-                  <ImageUploader onImageUpload={handleImageUpload} />
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      {/* Footer */}
-      <footer className="relative z-20 p-4 text-center text-sm text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-white/20">
-        Powered by{" "}
-        <a 
-          href="https://www.upstage.ai/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-primary hover:text-primary/80 underline transition-colors"
-        >
-          Upstage
-        </a>
-        {" "}and{" "}
-        <a 
-          href="https://www.upstage.ai/products/information-extract" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-primary hover:text-primary/80 underline transition-colors"
-        >
-          Agentic Information Extractor
-        </a>
-        . &copy; {new Date().getFullYear()} img2excel.
-      </footer>
+        {/* Footer */}
+        <footer className="relative z-20 p-4 text-center text-sm text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-white/20">
+          Powered by{" "}
+          <a 
+            href="https://www.upstage.ai/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:text-primary/80 underline transition-colors"
+          >
+            Upstage
+          </a>
+          {" "}and{" "}
+          <a 
+            href="https://www.upstage.ai/products/information-extract" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:text-primary/80 underline transition-colors"
+          >
+            Agentic Information Extractor
+          </a>
+          . &copy; {new Date().getFullYear()} img2excel.
+        </footer>
+      </div>
     </div>
   )
 }

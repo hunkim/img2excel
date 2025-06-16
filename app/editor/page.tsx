@@ -100,6 +100,7 @@ export default function EditorPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(320)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [deleteImageConfirmId, setDeleteImageConfirmId] = useState<string | null>(null)
   const deleteImageTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -248,10 +249,36 @@ export default function EditorPage() {
         onProjectSelect={handleSelectProject}
         onNewProject={handleCreateNewProject}
         onCreateFromTemplate={handleCreateFromTemplate}
+        onWidthChange={setSidebarWidth}
       />
 
-            {/* Main Content */}
-      <div className="flex flex-col flex-1 h-full overflow-hidden">
+      {/* Main Content Container - Pushed right when sidebar is open */}
+      <div 
+        className={cn(
+          "flex flex-col flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out"
+        )}
+        style={{
+          marginLeft: sidebarOpen && isAuthenticated ? `${sidebarWidth}px` : '0'
+        }}
+      >
+        {/* Sidebar Toggle Button */}
+        {isAuthenticated && (
+          <div className="fixed left-2 sm:left-4 top-2 sm:top-4 z-40">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="h-8 w-8 sm:h-10 sm:w-10 bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl transition-shadow touch-manipulation"
+            >
+              {sidebarOpen ? (
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              ) : (
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+              )}
+            </Button>
+          </div>
+        )}
+
         {/* Fixed Header */}
         <header className="flex-shrink-0 p-2 sm:p-3 border-b dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm flex items-center justify-between z-10">
           <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
@@ -433,73 +460,75 @@ export default function EditorPage() {
           ) : null}
         </div>
 
-        {/* Scrollable Table Area with Explicit Scrollbar */}
-        <main className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900">
-          <div className="h-full p-2 sm:p-4">
-            <div className="h-full bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700 overflow-hidden">
-              <div className="h-full overflow-auto">
-                <Table className="min-w-full">
-                  <TableHeader className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10">
-                    <TableRow>
-                      {keys.map((key) => (
-                        <TableHead key={key.id} className="min-w-[120px] sm:min-w-[150px] bg-slate-50 dark:bg-slate-800/50">
-                          <Input
-                            type="text"
-                            value={key.name}
-                            onChange={(e) => actions.updateKeyName(key.id, e.target.value)}
-                            className="h-8 sm:h-9 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 sm:px-2 font-semibold bg-transparent text-sm sm:text-base"
-                          />
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-[40px] sm:w-[50px] bg-slate-50 dark:bg-slate-800/50">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={handleAddKey}>
-                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {columns.map((col) => (
-                      <TableRow key={col.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+        {/* Main Spreadsheet Area */}
+        <main className="flex-1 overflow-hidden bg-white dark:bg-slate-800">
+          <div className="h-full overflow-auto">
+            <div className="h-full p-2 sm:p-4">
+              <div className="h-full bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700 overflow-hidden">
+                <div className="h-full overflow-auto">
+                  <Table className="min-w-full">
+                    <TableHeader className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10">
+                      <TableRow>
                         {keys.map((key) => (
-                          <TableCell key={key.id} className="p-1 sm:p-2">
-                            <div className="relative">
-                              <Input
-                                type="text"
-                                value={col.values[key.id] || ""}
-                                onChange={(e) => actions.updateCellValue(col.id, key.id, e.target.value)}
-                                className="h-8 sm:h-9 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 sm:px-2 bg-transparent text-sm sm:text-base"
-                                placeholder={isProcessing && !col.values[key.id] ? "..." : ""}
-                              />
-                              {isProcessing && !col.values[key.id] && (
-                                <div className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2">
-                                  <Spinner size="sm" className="text-muted-foreground/50" />
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
+                          <TableHead key={key.id} className="min-w-[120px] sm:min-w-[150px] bg-slate-50 dark:bg-slate-800/50">
+                            <Input
+                              type="text"
+                              value={key.name}
+                              onChange={(e) => actions.updateKeyName(key.id, e.target.value)}
+                              className="h-8 sm:h-9 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 sm:px-2 font-semibold bg-transparent text-sm sm:text-base"
+                            />
+                          </TableHead>
                         ))}
-                        <TableCell className="p-1 sm:p-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={cn(
-                              "h-6 w-6 sm:h-7 sm:w-7 transition-all duration-200 touch-manipulation",
-                              deleteImageConfirmId === col.id && "bg-orange-100 hover:bg-orange-200"
-                            )}
-                            onClick={(e) => handleDeleteImage(col.id, e)}
-                          >
-                            {deleteImageConfirmId === col.id ? (
-                              <AlertTriangle className="h-3 w-3 text-orange-500" />
-                            ) : (
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            )}
+                        <TableHead className="w-[40px] sm:w-[50px] bg-slate-50 dark:bg-slate-800/50">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={handleAddKey}>
+                            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
-                        </TableCell>
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {columns.map((col) => (
+                        <TableRow key={col.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          {keys.map((key) => (
+                            <TableCell key={key.id} className="p-1 sm:p-2">
+                              <div className="relative">
+                                <Input
+                                  type="text"
+                                  value={col.values[key.id] || ""}
+                                  onChange={(e) => actions.updateCellValue(col.id, key.id, e.target.value)}
+                                  className="h-8 sm:h-9 border-0 focus-visible:ring-1 focus-visible:ring-primary px-1 sm:px-2 bg-transparent text-sm sm:text-base"
+                                  placeholder={isProcessing && !col.values[key.id] ? "..." : ""}
+                                />
+                                {isProcessing && !col.values[key.id] && (
+                                  <div className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2">
+                                    <Spinner size="sm" className="text-muted-foreground/50" />
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          ))}
+                          <TableCell className="p-1 sm:p-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn(
+                                "h-6 w-6 sm:h-7 sm:w-7 transition-all duration-200 touch-manipulation",
+                                deleteImageConfirmId === col.id && "bg-orange-100 hover:bg-orange-200"
+                              )}
+                              onClick={(e) => handleDeleteImage(col.id, e)}
+                            >
+                              {deleteImageConfirmId === col.id ? (
+                                <AlertTriangle className="h-3 w-3 text-orange-500" />
+                              ) : (
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           </div>
