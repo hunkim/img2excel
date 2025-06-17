@@ -1,3 +1,5 @@
+import { makeAuthenticatedApiCall } from './api-client'
+
 interface UpstageSchema {
   type: "object"
   properties: Record<string, {
@@ -40,12 +42,9 @@ export const generateSchemaFromImage = async (file: File): Promise<Record<string
   try {
     const imageUrl = await fileToDataUrl(file)
     
-    const response = await fetch('/api/schema-generation', {
+    const response = await makeAuthenticatedApiCall('/api/schema-generation', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ imageUrl })
+      body: { imageUrl }
     })
 
     if (!response.ok) {
@@ -120,15 +119,12 @@ export const extractInformationFromImage = async (
       }
     })
 
-    const response = await fetch('/api/information-extraction', {
+    const response = await makeAuthenticatedApiCall('/api/information-extraction', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
+      body: { 
         imageUrl,
         schema: upstageSchema
-      })
+      }
     })
 
     if (!response.ok) {

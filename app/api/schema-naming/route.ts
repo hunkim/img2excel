@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limiter'
+import { getAuthInfo, getClientIP } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check rate limit first
+    const authInfo = await getAuthInfo(request)
+    const identifier = authInfo.isAuthenticated ? authInfo.userId! : getClientIP(request)
+    const rateLimitResult = checkRateLimit(identifier, authInfo.isAuthenticated)
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          resetTime: rateLimitResult.resetTime 
+        }, 
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult)
+        }
+      )
+    }
+
     const { fieldNames } = await request.json()
 
     if (!fieldNames || !Array.isArray(fieldNames) || fieldNames.length === 0) {
@@ -62,6 +82,8 @@ Title:`
       console.warn('⚠️ No title generated, using fallback')
       return NextResponse.json({ 
         suggestedTitle: 'AI Extracted Data' 
+      }, {
+        headers: getRateLimitHeaders(rateLimitResult)
       })
     }
 
@@ -73,6 +95,8 @@ Title:`
 
     return NextResponse.json({
       suggestedTitle: cleanTitle
+    }, {
+      headers: getRateLimitHeaders(rateLimitResult)
     })
 
   } catch (error) {

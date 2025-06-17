@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limiter'
+import { getAuthInfo, getClientIP } from '@/lib/auth-utils'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check rate limit first
+    const authInfo = await getAuthInfo(request)
+    const identifier = authInfo.isAuthenticated ? authInfo.userId! : getClientIP(request)
+    const rateLimitResult = checkRateLimit(identifier, authInfo.isAuthenticated)
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          resetTime: rateLimitResult.resetTime 
+        }, 
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult)
+        }
+      )
+    }
+
     const { imageUrl } = await request.json()
     
     if (!imageUrl) {
@@ -48,7 +68,9 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json(data, {
+      headers: getRateLimitHeaders(rateLimitResult)
+    })
   } catch (error) {
     console.error('❌ Schema generation error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { generateSchemaFromImage, extractInformationFromImage } from "@/lib/upstage-service"
+import { makeAuthenticatedApiCall } from "@/lib/api-client"
 import { 
   saveProject, 
   updateProject, 
@@ -189,10 +190,9 @@ export const useSpreadsheetStore = create<SpreadsheetState>((set, get) => ({
             
             try {
               const fieldNames = Object.keys(schemaData)
-              const namingResponse = await fetch('/api/schema-naming', {
+              const namingResponse = await makeAuthenticatedApiCall('/api/schema-naming', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fieldNames }),
+                body: { fieldNames }
               })
               
               if (namingResponse.ok) {

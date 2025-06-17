@@ -123,6 +123,11 @@ sequenceDiagram
    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
    NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abcdef
+   
+   # Optional: Rate Limiting Configuration
+   ANONYMOUS_RATE_LIMIT=60        # Requests per hour for non-logged users
+   AUTHENTICATED_RATE_LIMIT=240   # Requests per hour for logged users  
+   RATE_LIMIT_WINDOW_MS=3600000   # Time window in milliseconds (1 hour)
    ```
 
 3. **Run Development Server**:
@@ -274,9 +279,12 @@ Content-Type: application/json
 
 ## 🌍 Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `UPSTAGE_API_KEY` | Your Upstage AI API key | ✅ |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `UPSTAGE_API_KEY` | Your Upstage AI API key | ✅ | - |
+| `ANONYMOUS_RATE_LIMIT` | Rate limit for non-logged in users (requests/hour) | ❌ | 60 |
+| `AUTHENTICATED_RATE_LIMIT` | Rate limit for logged in users (requests/hour) | ❌ | 240 |
+| `RATE_LIMIT_WINDOW_MS` | Rate limit time window in milliseconds | ❌ | 3600000 |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase API key | ⚠️ Optional* |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain | ⚠️ Optional* |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID | ⚠️ Optional* |
